@@ -33,20 +33,20 @@ void addEdge1(Graph graph, int v1, int v2, float trong_so){
         jrb_insert_int(list, v2, new_jval_f(trong_so));
     }
 }
-void addEdge2(Graph graph, int v1, int v2, float trong_so){ 
+void addEdge2(Graph graph, int v1, int v2, int trong_so){ //
     JRB search = jrb_find_int(graph.edges, v1);
     JRB tree, node;
     if(search == NULL)
     {
         tree = make_jrb();
         jrb_insert_int(graph.edges, v1, new_jval_v(tree));
-        jrb_insert_int(tree, v2, new_jval_f(trong_so));
+        jrb_insert_int(tree, v2, new_jval_i(trong_so)); //
     }
     else
     {
         node = jrb_find_int(graph.edges, v1);
         tree = (JRB) jval_v(node->val);
-        jrb_insert_int(tree, v2, new_jval_f(trong_so));
+        jrb_insert_int(tree, v2, new_jval_i(trong_so)); //
     }
 
     JRB search1 = jrb_find_int(graph.edges, v2);
@@ -55,13 +55,13 @@ void addEdge2(Graph graph, int v1, int v2, float trong_so){
     {
         tree1 = make_jrb();
         jrb_insert_int(graph.edges, v2, new_jval_v(tree1));
-        jrb_insert_int(tree1, v1, new_jval_f(trong_so));
+        jrb_insert_int(tree1, v1, new_jval_i(trong_so)); //
     }
     else
     {
         node1 = jrb_find_int(graph.edges, v2);
         tree1 = (JRB) jval_v(node1->val);
-        jrb_insert_int(tree1, v1, new_jval_f(trong_so));
+        jrb_insert_int(tree1, v1, new_jval_i(trong_so)); //
     }
 }
 
@@ -140,13 +140,12 @@ int DAG(Graph graph){
     return 1;
 }
 
-float getEdgeValue(Graph graph, int v1, int v2)
-{
+int getEdgeValue(Graph graph, int v1, int v2){ //
     JRB node = jrb_find_int(graph.edges, v1);
     JRB tree = (JRB) jval_v(node->val);
     JRB search = jrb_find_int(tree, v2);
     if(search == NULL) return INFINITIVE_VALUE;
-    else return jval_f(search->val);
+    else return jval_i(search->val);
 }
 
 //Priority Queue stuff
@@ -191,38 +190,39 @@ Queue Dequeue(Queue queue, int* output){
 
     return queue;
 }
-float dijkstra(Graph graph, int start, int stop, int* path, int* length){
+int dijkstra(Graph graph, int start, int stop, int* path, int* length){
+    // call stuffs
+    int num = NumberVertex(graph);
     int u, count;
-    int output[NumberVertex(graph)];
+    int output[num];
     int tmp[1000], previous[1000];
-    int visited[NumberVertex(graph)+1];
-    for(int i=0; i<NumberVertex(graph)+1; i++) visited[i]=0;
-    
+    int visited[num+1];
+    for(int i=0; i<num+1; i++) visited[i]=0;
+
     //path
     *length = 0;
-    for(int i=0; i<NumberVertex(graph)+1; i++) *(path + i) = -1;
+    for(int i=0; i<num+1; i++) *(path + i) = -1;
 
     // set distance
-    float distance[NumberVertex(graph)+1];
-    for(int i=0; i<NumberVertex(graph)+1; i++) distance[i] = INFINITIVE_VALUE;
+    int distance[num+1];
+    for(int i=0; i<num+1; i++) distance[i] = INFINITIVE_VALUE;
     distance[start] = 0;
     previous[start] = start;
 
     //create priority queue
     Queue p_queue = createQueue();
     p_queue = Enqueue(p_queue, start, distance[start]);
-    
+
     //Dikjstra
     while(!IsQueueEmpty(p_queue))
     {
         p_queue = Dequeue(p_queue, &u);
-        visited[u] = 1;
-        
+        *(visited + u) = 1;
+
         count = outdegree(graph, u, output);
-        
         for(int i=0; i<count; i++)
         {
-            if(visited[output[i]] == 0 )
+            if( *(visited + output[i]) == 0 )
             {
                 if(distance[output[i]] > distance[u] + getEdgeValue(graph, u, output[i]))
                 { 
@@ -233,12 +233,10 @@ float dijkstra(Graph graph, int start, int stop, int* path, int* length){
             }
         }
     }
-    
-    float total = distance[stop]; 
+    int total = distance[stop]; 
     int n, t = stop, s = start, do_dai=0;
     if (total != INFINITIVE_VALUE)
     {
-        
         tmp[0] = t;
         n = 1;              
         while (t != s)
@@ -246,14 +244,41 @@ float dijkstra(Graph graph, int start, int stop, int* path, int* length){
             t = previous[t];
             tmp[n++] = t;
         }
-        printf("FUCK||\n");
         for (int i=n-1; i>=0; i--)
             path[n-i-1] = tmp[i];
         *length = n;                   
     }
     return distance[stop];
 }
+int BellmanFord(Graph graph, int start, float* distance, int* previous)
+{
+    for(int i=1; i<=NumberVertex(graph); i++) 
+    {
+        *(distance + i) = INFINITIVE_VALUE;
+        *(previous + i) = -1; //Graph khong co dinh ID am        
+    }
+    *(distance + start) = 0;
 
+    int output[NumberVertex(graph)];
+    int count;
+    float tempDistance;
+    int path = 0;
+    for(int v=1; v<=NumberVertex(graph); v++)
+    {
+        count = outdegree(graph, v, output);
+        for(int u=0; u<count; u++)
+        {
+            tempDistance = getEdgeValue(graph, v, output[u]) + *(distance + output[u]);
+            if(tempDistance < *(distance + v))
+            {
+                *(distance + v) = tempDistance;
+                *(previous + v) = output[u];
+                path++;
+            }
+        }
+    }
+    return path;
+}
 void dropGraph(Graph graph){
     JRB node;
     jrb_traverse(node, graph.edges){
